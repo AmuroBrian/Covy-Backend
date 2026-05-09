@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { EncryptionInterceptor } from './common/interceptors/encryption.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -24,6 +25,9 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  // Global Interceptors
+  app.useGlobalInterceptors(new EncryptionInterceptor());
 
   // Swagger API Documentation Setup
   const config = new DocumentBuilder()

@@ -29,6 +29,9 @@ export class ChatService {
       skip: cursor ? 1 : 0,
       cursor: cursor ? { id: cursor } : undefined,
       orderBy: { createdAt: 'desc' }, // Latest first
+      include: {
+        reactions: true,
+      },
     });
 
     return messages;
@@ -114,5 +117,52 @@ export class ChatService {
     });
 
     return { updatedCount: result.count };
+  }
+
+  /**
+   * Adds or updates a reaction on a message.
+   */
+  async addReaction(currentUserId: string, messageId: string, emoji: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { providerId: currentUserId },
+    });
+
+    if (!user || !user.coupleId) {
+      throw new BadRequestException('User is not in a couple.');
+    }
+
+    const message = await this.prisma.message.findFirst({
+      where: { id: messageId, coupleId: user.coupleId },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found.');
+    }
+
+    // Upsert the reaction
+    const reaction = await this.prisma.messageReaction.upsert({
+      where: {
+        messageId_userId: {
+          messageId: messageId,
+          userId: user.id,
+        },
+      },
+      update: { emoji },
+      create: {
+        messageId,
+        userId: user.id,
+        emoji,
+      },
+    });
+
+    // Broadcast the reaction
+    this.realtimeGateway.broadcastReaction(user.coupleId, {
+      messageId,
+      userId: user.id,
+      emoji,
+      createdAt: reaction.createdAt.toISOString(),
+    });
+
+    return reaction;
   }
 }

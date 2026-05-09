@@ -16,8 +16,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       algorithms: ['RS256', 'ES256'],
-      audience: 'authenticated', // Supabase default audience
-      issuer: `${process.env.SUPABASE_URL}/auth/v1`, // Supabase default issuer
+      // audience: 'authenticated', // Optional: Supabase default audience
+      // issuer: `${process.env.SUPABASE_URL}/auth/v1`, // Optional: Sometimes missing in Supabase JWTs
     });
   }
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
@@ -26,6 +26,11 @@ class GetMessagesDto {
 
   @IsOptional()
   limit?: string; // Query params come in as strings
+}
+
+class ReactMessageDto {
+  @IsString()
+  emoji: string;
 }
 
 @Controller('chat')
@@ -58,5 +63,14 @@ export class ChatController {
   @Patch('read')
   async markAsRead(@CurrentUser() user: any) {
     return this.chatService.markAsRead(user.userId);
+  }
+
+  @Post(':messageId/react')
+  async reactToMessage(
+    @CurrentUser() user: any,
+    @Body() body: ReactMessageDto,
+    @Param('messageId') messageId: string,
+  ) {
+    return this.chatService.addReaction(user.userId, messageId, body.emoji);
   }
 }

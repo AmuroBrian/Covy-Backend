@@ -170,6 +170,30 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   /**
+   * Broadcasts a reaction to the partner if they are connected.
+   */
+  public async broadcastReaction(coupleId: string, reactionData: any) {
+    try {
+      const couple = await this.prisma.couple.findUnique({
+        where: { id: coupleId },
+        include: { users: true },
+      });
+
+      if (!couple) return;
+
+      const partner = couple.users.find((u) => u.id !== reactionData.userId);
+      if (partner && partner.providerId) {
+        const partnerSocketId = this.activeUsers.get(partner.providerId);
+        if (partnerSocketId) {
+          this.server.to(partnerSocketId).emit('message_reacted', reactionData);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to broadcast reaction:', err);
+    }
+  }
+
+  /**
    * Checks if a specific user is currently connected via WebSockets.
    */
   public isUserOnline(providerId: string): boolean {

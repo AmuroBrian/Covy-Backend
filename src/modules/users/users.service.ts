@@ -65,4 +65,23 @@ export class UsersService {
       where: { id },
     });
   }
+
+  /**
+   * Updates the user's profile information.
+   */
+  async updateProfile(providerId: string, data: { displayName?: string; gender?: string; avatarUrl?: string }) {
+    const user = await this.prisma.user.findFirst({ where: { providerId } });
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        displayName: data.displayName,
+        gender: data.gender,
+        avatarUrl: data.avatarUrl,
+      },
+    });
+  }
 }

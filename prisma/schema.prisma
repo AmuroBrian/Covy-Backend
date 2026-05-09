@@ -28,6 +28,8 @@ model User {
   messagesSent    Message[]
   expenses        Expense[]
   tasksAssigned   ChecklistItem[]
+  savedPlaces     SavedPlace[]
+  reactions       MessageReaction[]
 }
 
 enum AuthProvider {
@@ -90,7 +92,11 @@ model SavedPlace {
   id              String    @id @default(uuid())
   coupleId        String
   couple          Couple    @relation(fields: [coupleId], references: [id])
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id])
   label           String    // e.g., "Home", "Office"
+  address         String?   // Exact string from search Autocomplete
+  icon            String?   // e.g., "home-outline", "briefcase-outline"
   latitude        Float
   longitude       Float
   radius          Float     // Geofence radius
@@ -120,7 +126,21 @@ model Message {
   createdAt       DateTime  @default(now())
   deletedAt       DateTime?
 
+  reactions       MessageReaction[]
+
   @@index([coupleId, createdAt(sort: Desc)])
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId])
 }
 
 enum MessageType {

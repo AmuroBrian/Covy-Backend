@@ -1,0 +1,10 @@
+--- package.json
++++ package.json
+@@ -9,6 +9,7 @@
+     "build": "nest build",
+     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+     "start": "nest start",
++    "db:reset": "node scripts/reset-db.js",
+     "start:dev": "nest start --watch",
+     "start:debug": "nest start --debug --watch",
+     "start:prod": "node dist/main",

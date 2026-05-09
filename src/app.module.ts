@@ -17,9 +17,13 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { HealthModule } from './modules/health/health.module';
 
 import { DatabaseModule } from './database/database.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [DatabaseModule, AuthModule, UsersModule, CouplesModule, LocationsModule, SavedPlacesModule, DevicesModule, StatusesModule, ChatModule, ChecklistsModule, GoalsModule, FinanceModule, NotificationsModule, RealtimeModule, HealthModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    DatabaseModule, AuthModule, UsersModule, CouplesModule, LocationsModule, SavedPlacesModule, DevicesModule, StatusesModule, ChatModule, ChecklistsModule, GoalsModule, FinanceModule, NotificationsModule, RealtimeModule, HealthModule
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
