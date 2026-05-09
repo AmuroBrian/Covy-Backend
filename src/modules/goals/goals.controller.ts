@@ -3,7 +3,7 @@ import { GoalsService } from './goals.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator';
 
 class CreateGoalDto {
   @IsString()
@@ -16,6 +16,10 @@ class CreateGoalDto {
   @IsOptional()
   @IsString()
   targetDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  targetAmount?: number;
 }
 
 class UpdateGoalDto {
@@ -34,6 +38,14 @@ class UpdateGoalDto {
   @IsOptional()
   @IsString()
   targetDate?: string;
+
+  @IsOptional()
+  @IsNumber()
+  progress?: number;
+
+  @IsOptional()
+  @IsNumber()
+  targetAmount?: number;
 }
 
 @Controller('goals')
@@ -51,6 +63,7 @@ export class GoalsController {
       body.title,
       body.description,
       body.targetDate,
+      body.targetAmount,
     );
   }
 
@@ -72,6 +85,8 @@ export class GoalsController {
       body.description,
       body.isCompleted,
       body.targetDate,
+      body.progress,
+      body.targetAmount,
     );
   }
 

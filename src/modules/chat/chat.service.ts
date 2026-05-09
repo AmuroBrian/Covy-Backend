@@ -31,6 +31,7 @@ export class ChatService {
       orderBy: { createdAt: 'desc' }, // Latest first
       include: {
         reactions: true,
+        replyTo: true,
       },
     });
 
@@ -45,6 +46,7 @@ export class ChatService {
     content: string,
     mediaUrl?: string,
     type: 'TEXT' | 'IMAGE' | 'AUDIO' = 'TEXT',
+    replyToId?: string,
   ) {
     const user = await this.prisma.user.findFirst({
       where: { providerId: currentUserId },
@@ -62,7 +64,11 @@ export class ChatService {
         content,
         mediaUrl,
         type,
+        replyToId,
       },
+      include: {
+        replyTo: true,
+      }
     });
 
     // Broadcast the message immediately via WebSockets
@@ -139,6 +145,26 @@ export class ChatService {
       throw new NotFoundException('Message not found.');
     }
 
+    const existingReaction = await this.prisma.messageReaction.findUnique({
+      where: {
+        messageId_userId: { messageId: messageId, userId: user.id },
+      },
+    });
+
+    if (existingReaction && existingReaction.emoji === emoji) {
+      // User tapped the same emoji -> Remove reaction
+      await this.prisma.messageReaction.delete({
+        where: { id: existingReaction.id },
+      });
+      
+      this.realtimeGateway.broadcastReaction(user.coupleId, {
+        messageId,
+        userId: user.id,
+        emoji: null, // Indicates removal
+      });
+      return { removed: true };
+    }
+
     // Upsert the reaction
     const reaction = await this.prisma.messageReaction.upsert({
       where: {
@@ -164,5 +190,40 @@ export class ChatService {
     });
 
     return reaction;
+  }
+
+  /**
+   * Hard deletes a message if the user owns it.
+   */
+  async deleteMessage(currentUserId: string, messageId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { providerId: currentUserId },
+    });
+
+    if (!user || !user.coupleId) {
+      throw new BadRequestException('User is not in a couple.');
+    }
+
+    const message = await this.prisma.message.findFirst({
+      where: { id: messageId, coupleId: user.coupleId },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found.');
+    }
+
+    if (message.senderId !== user.id) {
+      throw new BadRequestException('You can only delete your own messages.');
+    }
+
+    // Hard delete the message (cascades reactions)
+    await this.prisma.message.delete({
+      where: { id: messageId },
+    });
+
+    // Broadcast the deletion
+    this.realtimeGateway.broadcastMessageDeleted(user.coupleId, messageId);
+
+    return { deleted: true, messageId };
   }
 }

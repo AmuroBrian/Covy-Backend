@@ -71,7 +71,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   @SubscribeMessage('ping_location')
   async handleLocationPing(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { lat: number; lng: number; battery: number },
+    @MessageBody() data: { lat: number; lng: number; battery: number; isCharging?: boolean },
   ) {
     // Find who this socket belongs to
     let currentUserId: string | null = null;
@@ -115,6 +115,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
           lat: data.lat,
           lng: data.lng,
           battery: data.battery,
+          isCharging: data.isCharging,
           timestamp: new Date().toISOString(),
         });
       }
@@ -198,5 +199,56 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
    */
   public isUserOnline(providerId: string): boolean {
     return this.activeUsers.has(providerId);
+  }
+
+  /**
+   * Broadcasts a message deletion.
+   */
+  public async broadcastMessageDeleted(coupleId: string, messageId: string) {
+    try {
+      const couple = await this.prisma.couple.findUnique({
+        where: { id: coupleId },
+        include: { users: true },
+      });
+
+      if (!couple) return;
+
+      // Broadcast to all connected users in the couple
+      for (const u of couple.users) {
+        if (u.providerId) {
+          const socketId = this.activeUsers.get(u.providerId);
+          if (socketId) {
+            this.server.to(socketId).emit('message_deleted', { messageId });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to broadcast message deletion:', err);
+    }
+  }
+
+  /**
+   * Broadcasts a generic update event for Shared Space (Checklists, Goals, Finance).
+   */
+  public async broadcastSharedUpdate(coupleId: string) {
+    try {
+      const couple = await this.prisma.couple.findUnique({
+        where: { id: coupleId },
+        include: { users: true },
+      });
+
+      if (!couple) return;
+
+      for (const u of couple.users) {
+        if (u.providerId) {
+          const socketId = this.activeUsers.get(u.providerId);
+          if (socketId) {
+            this.server.to(socketId).emit('shared_space_update', { timestamp: new Date().toISOString() });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to broadcast shared space update:', err);
+    }
   }
 }

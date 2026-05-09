@@ -26,7 +26,6 @@ model User {
   devices         Device[]
   locations       LocationHistory[]
   messagesSent    Message[]
-  expenses        Expense[]
   tasksAssigned   ChecklistItem[]
   savedPlaces     SavedPlace[]
   reactions       MessageReaction[]
@@ -51,7 +50,6 @@ model Couple {
   messages        Message[]
   checklists      Checklist[]
   goals           Goal[]
-  budgets         Budget[]
 }
 
 enum CoupleStatus {
@@ -126,6 +124,10 @@ model Message {
   createdAt       DateTime  @default(now())
   deletedAt       DateTime?
 
+  replyToId       String?
+  replyTo         Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies         Message[] @relation("MessageReplies")
+
   reactions       MessageReaction[]
 
   @@index([coupleId, createdAt(sort: Desc)])
@@ -179,26 +181,7 @@ model Goal {
   description     String?
   targetDate      DateTime?
   isCompleted     Boolean   @default(false)
+  progress        Float     @default(0)
+  targetAmount    Float?
   createdAt       DateTime  @default(now())
-}
-
-model Budget {
-  id              String    @id @default(uuid())
-  coupleId        String
-  couple          Couple    @relation(fields: [coupleId], references: [id])
-  month           DateTime  // Store as YYYY-MM-01
-  totalBudget     Float
-  expenses        Expense[]
-}
-
-model Expense {
-  id              String    @id @default(uuid())
-  budgetId        String
-  budget          Budget    @relation(fields: [budgetId], references: [id])
-  userId          String
-  user            User      @relation(fields: [userId], references: [id])
-  amount          Float
-  category        String
-  description     String?
-  date            DateTime  @default(now())
 }

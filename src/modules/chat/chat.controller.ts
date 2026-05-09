@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Query, Param, UseGuards } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
@@ -17,6 +17,10 @@ class SendMessageDto {
   @IsOptional()
   @IsEnum(['TEXT', 'IMAGE', 'AUDIO'])
   type?: 'TEXT' | 'IMAGE' | 'AUDIO';
+
+  @IsOptional()
+  @IsString()
+  replyToId?: string;
 }
 
 class GetMessagesDto {
@@ -57,6 +61,7 @@ export class ChatController {
       body.content,
       body.mediaUrl,
       body.type || 'TEXT',
+      body.replyToId,
     );
   }
 
@@ -72,5 +77,13 @@ export class ChatController {
     @Param('messageId') messageId: string,
   ) {
     return this.chatService.addReaction(user.userId, messageId, body.emoji);
+  }
+
+  @Delete(':messageId')
+  async deleteMessage(
+    @CurrentUser() user: any,
+    @Param('messageId') messageId: string,
+  ) {
+    return this.chatService.deleteMessage(user.userId, messageId);
   }
 }

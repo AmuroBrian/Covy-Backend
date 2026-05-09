@@ -1,9 +1,13 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class ChecklistsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeGateway,
+  ) {}
 
   async createChecklist(currentUserId: string, title: string) {
     const user = await this.prisma.user.findFirst({
@@ -14,13 +18,15 @@ export class ChecklistsService {
       throw new BadRequestException('User is not in a couple.');
     }
 
-    return this.prisma.checklist.create({
+    const checklist = await this.prisma.checklist.create({
       data: {
         coupleId: user.coupleId,
         title,
       },
       include: { items: true },
     });
+    this.realtime.broadcastSharedUpdate(user.coupleId);
+    return checklist;
   }
 
   async getChecklists(currentUserId: string) {
@@ -70,6 +76,7 @@ export class ChecklistsService {
       where: { id: checklistId },
     });
 
+    this.realtime.broadcastSharedUpdate(user.coupleId);
     return { success: true, message: 'Checklist deleted.' };
   }
 
@@ -96,7 +103,7 @@ export class ChecklistsService {
       throw new NotFoundException('Checklist not found.');
     }
 
-    return this.prisma.checklistItem.create({
+    const item = await this.prisma.checklistItem.create({
       data: {
         checklistId,
         title,
@@ -104,6 +111,8 @@ export class ChecklistsService {
         dueDate: dueDate ? new Date(dueDate) : null,
       },
     });
+    this.realtime.broadcastSharedUpdate(user.coupleId);
+    return item;
   }
 
   async updateChecklistItem(
@@ -131,7 +140,7 @@ export class ChecklistsService {
       throw new NotFoundException('Checklist item not found.');
     }
 
-    return this.prisma.checklistItem.update({
+    const updated = await this.prisma.checklistItem.update({
       where: { id: itemId },
       data: {
         ...(title !== undefined && { title }),
@@ -140,6 +149,8 @@ export class ChecklistsService {
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
       },
     });
+    this.realtime.broadcastSharedUpdate(user.coupleId);
+    return updated;
   }
 
   async deleteChecklistItem(currentUserId: string, itemId: string) {
@@ -164,6 +175,7 @@ export class ChecklistsService {
       where: { id: itemId },
     });
 
+    this.realtime.broadcastSharedUpdate(user.coupleId);
     return { success: true, message: 'Item deleted.' };
   }
 }
