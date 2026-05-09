@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtimeGateway: RealtimeGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -43,9 +45,10 @@ export class ChatService {
   ) {
     const user = await this.prisma.user.findFirst({
       where: { providerId: currentUserId },
+      include: { couple: { include: { users: true } } },
     });
 
-    if (!user || !user.coupleId) {
+    if (!user || !user.couple || !user.coupleId) {
       throw new BadRequestException('User is not in a couple.');
     }
 
@@ -61,6 +64,24 @@ export class ChatService {
 
     // Broadcast the message immediately via WebSockets
     this.realtimeGateway.broadcastMessage(user.coupleId, user.id, message);
+
+    // If partner is offline, send a push notification
+    const partner = user.couple.users.find((u) => u.id !== user.id);
+    if (partner && partner.providerId) {
+      const isOnline = this.realtimeGateway.isUserOnline(partner.providerId);
+      if (!isOnline) {
+        let notifBody = content;
+        if (type === 'IMAGE') notifBody = '📷 Sent a photo';
+        if (type === 'AUDIO') notifBody = '🎤 Sent a voice message';
+        
+        await this.notificationsService.sendPushNotification(
+          partner.providerId,
+          `${user.displayName || 'Your partner'} sent a message`,
+          notifBody,
+          { type: 'NEW_MESSAGE', messageId: message.id }
+        );
+      }
+    }
 
     return message;
   }

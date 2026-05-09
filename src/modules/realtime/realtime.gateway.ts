@@ -168,4 +168,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       console.error('Failed to broadcast message:', err);
     }
   }
+
+  /**
+   * Checks if a specific user is currently connected via WebSockets.
+   */
+  public isUserOnline(providerId: string): boolean {
+    return this.activeUsers.has(providerId);
+  }
 }
