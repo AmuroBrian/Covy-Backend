@@ -103,7 +103,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     // Update user battery level
     await this.prisma.device.updateMany({
       where: { userId: user.id },
-      data: { batteryLevel: data.battery, lastActive: new Date() },
+      data: { batteryLevel: Math.round(data.battery), lastActive: new Date() },
     });
 
     // Find partner and emit directly if online
