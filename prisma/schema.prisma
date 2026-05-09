@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String?   @unique
+  passwordHash    String?
+  displayName     String?
+  gender          String?
+  inviteCode      String    @unique
+  avatarUrl       String?
+  provider        AuthProvider @default(EMAIL)
+  providerId      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  coupleId        String?
+  couple          Couple?   @relation(fields: [coupleId], references: [id])
+  
+  devices         Device[]
+  locations       LocationHistory[]
+  messagesSent    Message[]
+  expenses        Expense[]
+  tasksAssigned   ChecklistItem[]
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  FACEBOOK
+  APPLE
+}
+
+model Couple {
+  id              String    @id @default(uuid())
+  status          CoupleStatus @default(ACTIVE)
+  connectedAt     DateTime  @default(now())
+  disconnectedAt  DateTime?
+  
+  users           User[]
+  savedPlaces     SavedPlace[]
+  statuses        Status[]
+  messages        Message[]
+  checklists      Checklist[]
+  goals           Goal[]
+  budgets         Budget[]
+}
+
+enum CoupleStatus {
+  ACTIVE
+  DISCONNECTED
+}
+
+model Device {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  name            String?
+  model           String?
+  platform        String?
+  osVersion       String?
+  appVersion      String?
+  batteryLevel    Int?      // 0-100
+  isCharging      Boolean   @default(false)
+  pushToken       String?
+  lastActive      DateTime  @default(now())
+}
+
+model LocationHistory {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  latitude        Float
+  longitude       Float
+  accuracy        Float?
+  speed           Float?
+  heading         Float?
+  timestamp       DateTime  @default(now())
+
+  @@index([userId, timestamp(sort: Desc)])
+}
+
+model SavedPlace {
+  id              String    @id @default(uuid())
+  coupleId        String
+  couple          Couple    @relation(fields: [coupleId], references: [id])
+  label           String    // e.g., "Home", "Office"
+  latitude        Float
+  longitude       Float
+  radius          Float     // Geofence radius
+  createdAt       DateTime  @default(now())
+}
+
+model Status {
+  id              String    @id @default(uuid())
+  coupleId        String
+  couple          Couple    @relation(fields: [coupleId], references: [id])
+  text            String
+  emoji           String?
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+}
+
+model Message {
+  id              String    @id @default(uuid())
+  coupleId        String
+  couple          Couple    @relation(fields: [coupleId], references: [id])
+  senderId        String
+  sender          User      @relation(fields: [senderId], references: [id])
+  content         String?
+  mediaUrl        String?
+  type            MessageType @default(TEXT)
+  isRead          Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
+
+  @@index([coupleId, createdAt(sort: Desc)])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  LOCATION
+}
+
+model Checklist {
+  id              String    @id @default(uuid())
+  coupleId        String
+  couple          Couple    @relation(fields: [coupleId], references: [id])
+  title           String
+  createdAt       DateTime  @default(now())
+  items           ChecklistItem[]
+}
+
+model ChecklistItem {
+  id              String    @id @default(uuid())
+  checklistId     String
+  checklist       Checklist @relation(fields: [checklistId], references: [id])
+  title           String
+  isCompleted     Boolean   @default(false)
+  assignedToId    String?
+  assignee        User?     @relation(fields: [assignedToId], references: [id])
+  dueDate         DateTime?
+}
+
+model Goal {
+  id              String    @id @default(uuid())
+  coupleId        String
+  couple          Couple    @relation(fields: [coupleId], references: [id])
+  title           String
+  description     String?
+  targetDate      DateTime?
+  isCompleted     Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+}
+
+model Budget {
+  id              String    @id @default(uuid())
+  coupleId        String
+  couple          Couple    @relation(fields: [coupleId], references: [id])
+  month           DateTime  // Store as YYYY-MM-01
+  totalBudget     Float
+  expenses        Expense[]
+}
+
+model Expense {
+  id              String    @id @default(uuid())
+  budgetId        String
+  budget          Budget    @relation(fields: [budgetId], references: [id])
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  amount          Float
+  category        String
+  description     String?
+  date            DateTime  @default(now())
+}
