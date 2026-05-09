@@ -144,4 +144,28 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       // Ignore presence failure
     }
   }
+
+  /**
+   * Broadcasts a new chat message to the partner if they are connected.
+   */
+  public async broadcastMessage(coupleId: string, senderId: string, message: any) {
+    try {
+      const couple = await this.prisma.couple.findUnique({
+        where: { id: coupleId },
+        include: { users: true },
+      });
+
+      if (!couple) return;
+
+      const partner = couple.users.find((u) => u.id !== senderId);
+      if (partner && partner.providerId) {
+        const partnerSocketId = this.activeUsers.get(partner.providerId);
+        if (partnerSocketId) {
+          this.server.to(partnerSocketId).emit('new_message', message);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to broadcast message:', err);
+    }
+  }
 }
