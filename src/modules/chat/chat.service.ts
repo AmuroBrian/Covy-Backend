@@ -74,22 +74,19 @@ export class ChatService {
     // Broadcast the message immediately via WebSockets
     this.realtimeGateway.broadcastMessage(user.coupleId, user.id, message);
 
-    // If partner is offline, send a push notification
+    // Send push notification for every new message
     const partner = user.couple.users.find((u) => u.id !== user.id);
     if (partner && partner.providerId) {
-      const isOnline = this.realtimeGateway.isUserOnline(partner.providerId);
-      if (!isOnline) {
-        let notifBody = content;
-        if (type === 'IMAGE') notifBody = '📷 Sent a photo';
-        if (type === 'AUDIO') notifBody = '🎤 Sent a voice message';
-        
-        await this.notificationsService.sendPushNotification(
-          partner.providerId,
-          `${user.displayName || 'Your partner'} sent a message`,
-          notifBody,
-          { type: 'NEW_MESSAGE', messageId: message.id }
-        );
-      }
+      let notifBody = content;
+      if (type === 'IMAGE') notifBody = '📷 Sent a photo';
+      if (type === 'AUDIO') notifBody = '🎤 Sent a voice message';
+      
+      await this.notificationsService.sendPushNotification(
+        partner.providerId,
+        `${user.displayName || 'Your partner'} sent a message`,
+        notifBody,
+        { type: 'NEW_MESSAGE', messageId: message.id }
+      );
     }
 
     return message;

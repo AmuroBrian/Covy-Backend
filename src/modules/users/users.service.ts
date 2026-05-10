@@ -69,10 +69,15 @@ export class UsersService {
   /**
    * Updates the user's profile information.
    */
-  async updateProfile(providerId: string, data: { displayName?: string; gender?: string; avatarUrl?: string }) {
+  async updateProfile(providerId: string, data: { displayName?: string; gender?: string; avatarUrl?: string; preferences?: Record<string, boolean> }) {
     const user = await this.prisma.user.findFirst({ where: { providerId } });
     if (!user) {
       throw new Error('User not found');
+    }
+
+    let mergedPreferences = user.preferences ? (user.preferences as Record<string, any>) : {};
+    if (data.preferences) {
+      mergedPreferences = { ...mergedPreferences, ...data.preferences };
     }
 
     return this.prisma.user.update({
@@ -81,6 +86,7 @@ export class UsersService {
         displayName: data.displayName,
         gender: data.gender,
         avatarUrl: data.avatarUrl,
+        ...(data.preferences && { preferences: mergedPreferences }),
       },
     });
   }

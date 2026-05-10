@@ -2,14 +2,17 @@ import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsString()
-  @IsNotEmpty()
-  displayName: string;
+  @IsOptional()
+  displayName?: string;
 
   @IsString()
-  @IsNotEmpty()
-  gender: string;
+  @IsOptional()
+  gender?: string;
 
   @IsString()
   @IsOptional()
   avatarUrl?: string;
+
+  @IsOptional()
+  preferences?: Record<string, boolean>;
 }

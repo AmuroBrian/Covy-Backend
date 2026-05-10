@@ -27,7 +27,19 @@ export class LocationsService {
       orderBy: { timestamp: 'desc' },
     });
 
-    return latestLocation;
+    const partnerDevice = await this.prisma.device.findFirst({
+      where: { userId: partner.id },
+      orderBy: { lastActive: 'desc' }
+    });
+
+    if (!latestLocation) return null;
+
+    return {
+      ...latestLocation,
+      speed: latestLocation.speed,
+      battery: partnerDevice?.batteryLevel ?? null,
+      isCharging: partnerDevice?.isCharging ?? false,
+    };
   }
 
   /**

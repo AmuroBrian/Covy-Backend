@@ -14,6 +14,7 @@ model User {
   gender          String?
   inviteCode      String    @unique
   avatarUrl       String?
+  preferences     Json?     @default("{}")
   provider        AuthProvider @default(EMAIL)
   providerId      String?
   createdAt       DateTime  @default(now())
@@ -29,6 +30,8 @@ model User {
   tasksAssigned   ChecklistItem[]
   savedPlaces     SavedPlace[]
   reactions       MessageReaction[]
+  wishlists       Wishlist[]
+  memories        Memory[]
 }
 
 enum AuthProvider {
@@ -50,6 +53,10 @@ model Couple {
   messages        Message[]
   checklists      Checklist[]
   goals           Goal[]
+  anniversaries   Anniversary[]
+  wishlists       Wishlist[]
+  memories        Memory[]
+  pet             Pet?
 }
 
 enum CoupleStatus {
@@ -183,5 +190,56 @@ model Goal {
   isCompleted     Boolean   @default(false)
   progress        Float     @default(0)
   targetAmount    Float?
+  createdAt       DateTime  @default(now())
+}
+
+model Anniversary {
+  id              String    @id @default(uuid())
+  coupleId        String
+  couple          Couple    @relation(fields: [coupleId], references: [id])
+  title           String
+  date            DateTime
+  imageUrl        String?
+  createdAt       DateTime  @default(now())
+}
+
+model Wishlist {
+  id              String    @id @default(uuid())
+  coupleId        String
+  couple          Couple    @relation(fields: [coupleId], references: [id])
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  title           String
+  linkUrl         String?
+  imageUrl        String?
+  price           Float?
+  isSecret        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+}
+
+model Memory {
+  id              String    @id @default(uuid())
+  coupleId        String
+  couple          Couple    @relation(fields: [coupleId], references: [id])
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  imageUrl        String
+  caption         String?
+  date            DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+}
+
+model Pet {
+  id              String    @id @default(uuid())
+  coupleId        String    @unique
+  couple          Couple    @relation(fields: [coupleId], references: [id])
+  name            String    @default("Pou")
+  hunger          Int       @default(100) // 0 is starving, 100 is full
+  happiness       Int       @default(100) // 0 is sad, 100 is happy
+  sleepiness      Int       @default(0)   // 0 is awake, 100 is sleepy
+  state           String    @default("IDLE") // IDLE, EATING, SLEEPING, SCARED
+  lastFedAt       DateTime  @default(now())
+  lastPettedAt    DateTime  @default(now())
+  lastSleptAt     DateTime  @default(now())
   createdAt       DateTime  @default(now())
 }
